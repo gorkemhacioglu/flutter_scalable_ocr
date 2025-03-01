@@ -62,7 +62,7 @@ class ScalableOCR extends StatefulWidget {
   final bool lockCamera;
 
   /// Returns the base64 encoded string of the last scanned image
-  final Function(String)? getScannedImageBase64;
+  final Function(String) getScannedImageBase64;
 
   @override
   ScalableOCRState createState() => ScalableOCRState();
@@ -89,7 +89,7 @@ class ScalableOCRState extends State<ScalableOCR> {
   double maxWidth = 0;
   double maxHeight = 0;
   String convertingAmount = "";
-  String? _lastImageBase64;
+  String _lastImageBase64 = "";
 
   @override
   void initState() {
@@ -275,10 +275,6 @@ class ScalableOCRState extends State<ScalableOCR> {
     final base64Image = base64Encode(bytes);
     _lastImageBase64 = base64Image;
 
-    if (widget.getScannedImageBase64 != null) {
-      widget.getScannedImageBase64!(base64Image);
-    }
-
     final Size imageSize =
         Size(image.width.toDouble(), image.height.toDouble());
 
@@ -393,6 +389,7 @@ class ScalableOCRState extends State<ScalableOCR> {
           inputImage.metadata!.rotation,
           renderBox, (value) {
         widget.getScannedText(value);
+        widget.getScannedImageBase64(_lastImageBase64);
       }, getRawData: (value) {
         if (widget.getRawData != null) {
           widget.getRawData!(value);
