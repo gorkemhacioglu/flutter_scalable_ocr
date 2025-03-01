@@ -2,6 +2,7 @@ library flutter_scalable_ocr;
 
 import 'dart:developer';
 import 'dart:io';
+import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -23,7 +24,8 @@ class ScalableOCR extends StatefulWidget {
       this.paintboxCustom,
       this.cameraSelection = 0,
       this.torchOn,
-      this.lockCamera = true})
+      this.lockCamera = true,
+      this.getScannedImageBase64})
       : super(key: key);
 
   /// Offset on recalculated image left
@@ -59,6 +61,9 @@ class ScalableOCR extends StatefulWidget {
   /// Lock camera orientation
   final bool lockCamera;
 
+  /// Returns the base64 encoded string of the last scanned image
+  final Function(String)? getScannedImageBase64;
+
   @override
   ScalableOCRState createState() => ScalableOCRState();
 }
@@ -84,6 +89,7 @@ class ScalableOCRState extends State<ScalableOCR> {
   double maxWidth = 0;
   double maxHeight = 0;
   String convertingAmount = "";
+  String? _lastImageBase64;
 
   @override
   void initState() {
@@ -265,6 +271,14 @@ class ScalableOCRState extends State<ScalableOCR> {
     }
     final bytes = allBytes.done().buffer.asUint8List();
 
+    // Convert bytes to base64
+    final base64Image = base64Encode(bytes);
+    _lastImageBase64 = base64Image;
+
+    if (widget.getScannedImageBase64 != null) {
+      widget.getScannedImageBase64!(base64Image);
+    }
+
     final Size imageSize =
         Size(image.width.toDouble(), image.height.toDouble());
 
@@ -275,16 +289,19 @@ class ScalableOCRState extends State<ScalableOCR> {
     if (Platform.isIOS) {
       imageRotation = InputImageRotationValue.fromRawValue(sensorOrientation);
     } else if (Platform.isAndroid) {
-      var rotationCompensation = _orientations[_controller!.value.deviceOrientation];
+      var rotationCompensation =
+          _orientations[_controller!.value.deviceOrientation];
       if (rotationCompensation == null) return null;
       if (camera.lensDirection == CameraLensDirection.front) {
         // front-facing
         rotationCompensation = (sensorOrientation + rotationCompensation) % 360;
       } else {
         // back-facing
-        rotationCompensation = (sensorOrientation - rotationCompensation + 360) % 360;
+        rotationCompensation =
+            (sensorOrientation - rotationCompensation + 360) % 360;
       }
-      imageRotation = InputImageRotationValue.fromRawValue(rotationCompensation);
+      imageRotation =
+          InputImageRotationValue.fromRawValue(rotationCompensation);
     }
     if (imageRotation == null) return null;
 
@@ -296,7 +313,8 @@ class ScalableOCRState extends State<ScalableOCR> {
     // * bgra8888 for iOS
     if (imageFormat == null ||
         (Platform.isAndroid && imageFormat != InputImageFormat.nv21) ||
-        (Platform.isIOS && imageFormat != InputImageFormat.bgra8888)) return null;
+        (Platform.isIOS && imageFormat != InputImageFormat.bgra8888))
+      return null;
 
     // since format is constraint to nv21 or bgra8888, both only have one plane
     if (image.planes.length != 1) return null;
