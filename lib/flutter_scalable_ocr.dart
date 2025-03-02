@@ -25,7 +25,7 @@ class ScalableOCR extends StatefulWidget {
       this.cameraSelection = 0,
       this.torchOn,
       this.lockCamera = true,
-      this.getScannedImageBase64})
+      this.getScannedImageBase64Function})
       : super(key: key);
 
   /// Offset on recalculated image left
@@ -61,8 +61,8 @@ class ScalableOCR extends StatefulWidget {
   /// Lock camera orientation
   final bool lockCamera;
 
-  /// Returns the base64 encoded string of the last scanned image
-  final Function(String) getScannedImageBase64;
+  /// Function to get base64 image on demand
+  final Function(Future<String> Function())? getScannedImageBase64Function;
 
   @override
   ScalableOCRState createState() => ScalableOCRState();
@@ -89,11 +89,13 @@ class ScalableOCRState extends State<ScalableOCR> {
   double maxWidth = 0;
   double maxHeight = 0;
   String convertingAmount = "";
-  String _lastImageBase64 = "";
 
   @override
   void initState() {
     super.initState();
+    if (widget.getScannedImageBase64Function != null) {
+      widget.getScannedImageBase64Function!(getImageBase64);
+    }
     startLiveFeed();
   }
 
@@ -271,10 +273,6 @@ class ScalableOCRState extends State<ScalableOCR> {
     }
     final bytes = allBytes.done().buffer.asUint8List();
 
-    // Convert bytes to base64
-    final base64Image = base64Encode(bytes);
-    _lastImageBase64 = base64Image;
-
     final Size imageSize =
         Size(image.width.toDouble(), image.height.toDouble());
 
@@ -389,7 +387,6 @@ class ScalableOCRState extends State<ScalableOCR> {
           inputImage.metadata!.rotation,
           renderBox, (value) {
         widget.getScannedText(value);
-        widget.getScannedImageBase64(_lastImageBase64);
       }, getRawData: (value) {
         if (widget.getRawData != null) {
           widget.getRawData!(value);
@@ -414,5 +411,15 @@ class ScalableOCRState extends State<ScalableOCR> {
         setState(() {});
       }
     });
+  }
+
+  Future<String> getImageBase64() async {
+    if (_controller == null) {
+      throw Exception('Camera controller is not initialized');
+    }
+
+    final image = await _controller!.takePicture();
+    final bytes = await image.readAsBytes();
+    return base64Encode(bytes);
   }
 }
