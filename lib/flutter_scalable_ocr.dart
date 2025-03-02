@@ -25,7 +25,7 @@ class ScalableOCR extends StatefulWidget {
       this.cameraSelection = 0,
       this.torchOn,
       this.lockCamera = true,
-      this.getScannedImageBase64Function})
+      this.getImageBase64})
       : super(key: key);
 
   /// Offset on recalculated image left
@@ -62,7 +62,7 @@ class ScalableOCR extends StatefulWidget {
   final bool lockCamera;
 
   /// Function to get base64 image on demand
-  final Function(Future<String> Function())? getScannedImageBase64Function;
+  final Function(Future<String> Function())? getImageBase64;
 
   @override
   ScalableOCRState createState() => ScalableOCRState();
@@ -93,8 +93,8 @@ class ScalableOCRState extends State<ScalableOCR> {
   @override
   void initState() {
     super.initState();
-    if (widget.getScannedImageBase64Function != null) {
-      widget.getScannedImageBase64Function!(getImageBase64);
+    if (widget.getImageBase64 != null) {
+      widget.getImageBase64!(getImageBase64);
     }
     startLiveFeed();
   }
